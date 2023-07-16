@@ -31,9 +31,9 @@ def twitter_to_discord(data, context=None) -> str:
             is_updated = True
 
         for user in destination['users']:
-            for tweet in get_tweets(user['username'], pages=5):
             logging.debug(f'Processing user {user["username"]}')
 
+            for tweet in get_tweets(user['username'], pages=5, address='https://nitter.lacontrevoie.fr'):
                 logging.debug(f'Processing tweet {tweet.tweet_id}')
 
                 if ('disable_retweets' in user and user['disable_retweets'] and tweet.is_retweet):
