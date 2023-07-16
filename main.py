@@ -78,6 +78,7 @@ def twitter_to_discord(data, context=None) -> str:
                     logging.info(f'Ignoring {user["username"]}\'s retweet of {tweet.tweet_id}')
                     continue
 
+                seen_limit = 10
                 new_tweets.append(tweet)
                 destination['tweets'].append(tweet.dict())
                 user['tweets'].append(tweet.dict())
