@@ -78,7 +78,7 @@ def twitter_to_discord(data, context=None) -> str:
 
             # Post in order from oldest to newest
             for tweet in reversed(new_tweets):
-                tweet_url = f'https://twitter.com{tweet.tweet_url}'
+                tweet_url = f'https://fxtwitter.com{tweet.tweet_url}'
                 body = {
                     'content': tweet_url
                 }
