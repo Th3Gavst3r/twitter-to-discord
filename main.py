@@ -43,6 +43,7 @@ def twitter_to_discord(data, context=None) -> str:
                 is_updated = True
 
             new_tweets = []
+            seen_limit = 10
             for tweet in get_tweets(user['username'], pages, address='https://nitter.lacontrevoie.fr'):
                 logging.debug(f'Processing tweet {tweet.tweet_id}')
 
@@ -55,11 +56,17 @@ def twitter_to_discord(data, context=None) -> str:
                 if (tweet in destination['tweets']):
                     if (tweet in user['tweets']):
                         if (tweet.is_pinned):
-                            logger.info(f'Skipping pinned tweet {tweet.tweet_id} because it was already posted')
+                            logger.info(f'Skipping pin {tweet.tweet_id} because it was already posted')
                             continue
                         else:
-                            logger.info(f'Reached end of {user["username"]}\'s new tweets')
-                            break
+                            if (seen_limit == 0):
+                                logger.info(f'Reached end of {user["username"]}\'s new tweets')
+                                break
+                            else:
+                                # Guard against self-retweets or users deleting a retweet and retweeting it again later
+                                logger.info(f'Skipping tweet {tweet.tweet_id} because it was already posted')
+                                seen_limit -= 1
+                                continue
                     else:
                         user['tweets'].append(tweet.dict())
                         is_updated = True
