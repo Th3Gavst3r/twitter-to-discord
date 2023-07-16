@@ -35,6 +35,11 @@ def parse_tweet(html) -> Dict:
     retweet = html.find(".retweet-header .icon-container .icon-retweet", first=True)
     data["is_retweet"] = True if retweet else False
 
+    body = html.find(".tweet-body", first=True)
+
+    pinned = body.find(".pinned", first=True)
+    data["is_pinned"] = True if pinned is not None else False
+
     return data
 
 

@@ -1,6 +1,8 @@
 from pprint import pprint
 import requests
+from requests.status_codes import codes
 import logging
+import time
 
 from cloudevents.http import CloudEvent
 import functions_framework
@@ -40,27 +42,63 @@ def twitter_to_discord(data, context=None) -> str:
                 user['is_new'] = False
                 is_updated = True
 
+            new_tweets = []
             for tweet in get_tweets(user['username'], pages, address='https://nitter.lacontrevoie.fr'):
                 logging.debug(f'Processing tweet {tweet.tweet_id}')
+
+                if ('tweets' not in destination):
+                    destination['tweets'] = []
+
+                if ('tweets' not in user):
+                    user['tweets'] = []
+
+                if (tweet in destination['tweets']):
+                    if (tweet in user['tweets']):
+                        if (tweet.is_pinned):
+                            logger.info(f'Skipping pinned tweet {tweet.tweet_id} because it was already posted')
+                            continue
+                        else:
+                            logger.info(f'Reached end of {user["username"]}\'s new tweets')
+                            break
+                    else:
+                        user['tweets'].append(tweet.dict())
+                        is_updated = True
+
+                        logger.info(f'Skipping tweet {tweet.tweet_id} because it was already posted by another user')
+                        continue
 
                 if ('disable_retweets' in user and user['disable_retweets'] and tweet.is_retweet):
                     logging.info(f'Ignoring {user["username"]}\'s retweet of {tweet.tweet_id}')
                     continue
 
-                if ('tweets' not in destination):
-                    destination['tweets'] = []
+                new_tweets.append(tweet)
+                destination['tweets'].append(tweet.dict())
+                user['tweets'].append(tweet.dict())
+                is_updated = True
 
-                if (tweet not in destination['tweets']):
-                    tweet_url = f'https://twitter.com{tweet.tweet_url}'
-                    body = {
-                        'content': tweet_url
-                    }
+            # Post in order from oldest to newest
+            for tweet in reversed(new_tweets):
+                tweet_url = f'https://twitter.com{tweet.tweet_url}'
+                body = {
+                    'content': tweet_url
+                }
 
-                    logging.info(f'Posting new tweet: {tweet_url}')
-                    requests.post(destination['webhook_url'], body)
+                logging.info(f'Posting new tweet: {tweet_url}')
 
-                    destination['tweets'].append(tweet.dict())
-                    is_updated = True
+                def post_tweet(tweet_id, retries=5):
+                    try:
+                        r = requests.post(destination['webhook_url'], body)
+                        r.raise_for_status()
+                    except requests.exceptions.HTTPError as e:
+                        if e.response.status_code == codes.too_many_requests:
+                            logging.debug(f'Rate limit exeeded. Retrying after {r.headers["retry-after"]}ms')
+                            retry_after = int(r.headers['retry-after']) / 1000
+                            time.sleep(retry_after)
+                            post_tweet(tweet_id, retries-1)
+                        else:
+                            raise e
+
+                post_tweet(tweet.tweet_id)
 
         if is_updated:
             logging.info(f'Updating document for destination {destination_snapshot.id}')

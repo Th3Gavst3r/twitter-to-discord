@@ -28,6 +28,7 @@ class Tweet(Base):
     tweet_url: str
     username: str
     is_retweet: bool
+    is_pinned: bool
 
     @classmethod
     def from_dict(cls, elements: Dict[str, Any]) -> "Tweet":
