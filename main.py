@@ -91,10 +91,13 @@ def twitter_to_discord(data, context=None) -> str:
                         r.raise_for_status()
                     except requests.exceptions.HTTPError as e:
                         if e.response.status_code == codes.too_many_requests:
-                            logging.debug(f'Rate limit exeeded. Retrying after {r.headers["retry-after"]}ms')
-                            retry_after = int(r.headers['retry-after']) / 1000
-                            time.sleep(retry_after)
-                            post_tweet(tweet_id, retries-1)
+                            if (retries > 0) :
+                                logging.debug(f'Rate limit exeeded. Retrying after {r.headers["retry-after"]}ms')
+                                retry_after = int(r.headers['retry-after']) / 1000
+                                time.sleep(retry_after)
+                                post_tweet(tweet_id, retries-1)
+                            else:
+                                logging.error(f'Ran out of retries. Aborting post for tweet {tweet_id}')
                         else:
                             raise e
 
