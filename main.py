@@ -13,8 +13,7 @@ from nitter_scraper import get_tweets
 app = firebase_admin.initialize_app()
 db = firestore.client()
 
-
-def twitter_to_discord(request) -> None:
+def twitter_to_discord(data, context=None) -> str:
     destinations = db.collection('destinations').stream()
 
     for destination_snapshot in destinations:
