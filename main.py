@@ -33,7 +33,14 @@ def twitter_to_discord(data, context=None) -> str:
         for user in destination['users']:
             logging.debug(f'Processing user {user["username"]}')
 
-            for tweet in get_tweets(user['username'], pages=5, address='https://nitter.lacontrevoie.fr'):
+            pages = 5
+            if ('is_new' not in user or user['is_new']):
+                logging.debug(f'User {user["username"]} is new. Performing short lookup')
+                pages = 1
+                user['is_new'] = False
+                is_updated = True
+
+            for tweet in get_tweets(user['username'], pages, address='https://nitter.lacontrevoie.fr'):
                 logging.debug(f'Processing tweet {tweet.tweet_id}')
 
                 if ('disable_retweets' in user and user['disable_retweets'] and tweet.is_retweet):
